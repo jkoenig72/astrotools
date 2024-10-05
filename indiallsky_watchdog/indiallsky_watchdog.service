@@ -1,0 +1,15 @@
+[Unit]
+Description=Indiallsky Watchdog Service
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/home/fritz/indiallsky_watchdog
+ExecStart=/home/fritz/indiallsky_watchdog/watchdog.py
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=indiallsky-watchdog
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
