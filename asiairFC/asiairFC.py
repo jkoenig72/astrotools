@@ -3,6 +3,7 @@ import os
 from smb.SMBConnection import SMBConnection
 from datetime import datetime
 
+# test jk
 
 # Define common connection parameters
 userID = 'asiair'
