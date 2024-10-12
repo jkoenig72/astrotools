@@ -8,24 +8,72 @@ import shutil  # Import shutil for copying files
 def extract_fits_info(fits_file):
     with fits.open(fits_file) as hdul:
         header = hdul[0].header
+
+        # Creator
         creator = header.get('CREATOR', 'Unknown')
-        ccd_temp = round(float(header.get('CCD-TEMP', 'Unknown')), 2)
-        ra = round(float(header.get('RA', 'Unknown')), 2)
-        dec = round(float(header.get('DEC', 'Unknown')), 2)
+        if creator == 'Unknown':
+            creator = header.get('SWCREATE', 'Unknown')
+
+        # CCD Temperature
+        ccd_temp_value = header.get('CCD-TEMP', 'Unknown')
+        try:
+            ccd_temp = round(float(ccd_temp_value), 2)
+        except (ValueError, TypeError):
+            ccd_temp = 'Unknown'
+
+        # Right Ascension
+        ra_value = header.get('RA', 'Unknown')
+        try:
+            ra = round(float(ra_value), 2)
+        except (ValueError, TypeError):
+            ra = 'Unknown'
+
+        # Declination
+        dec_value = header.get('DEC', 'Unknown')
+        try:
+            dec = round(float(dec_value), 2)
+        except (ValueError, TypeError):
+            dec = 'Unknown'
+
+        # Date of Observation
         date_obs = header.get('DATE-OBS', 'Unknown')
         telescope = header.get('TELESCOP', 'Unknown')
         instrument = header.get('INSTRUME', 'Unknown')
+
+        # Guide Camera
         guidecam = header.get('GUIDECAM', 'Unknown')
+
         bayerpat = header.get('BAYERPAT', 'Unknown')
         gain = header.get('GAIN', 'Unknown')
-        exposure = header.get('EXPOSURE', 'Unknown')
-        imagew = header.get('IMAGEW', 'Unknown')
-        imageh = header.get('IMAGEH', 'Unknown')
-        focal_length = header.get('FOCALLEN', 'Unknown')
 
+        # Exposure Time
+        exposure_value = header.get('EXPOSURE', 'Unknown')
+        try:
+            exposure = float(exposure_value)
+        except (ValueError, TypeError):
+            exposure = 'Unknown'
+
+        # Image Width
+        imagew = header.get('IMAGEW', 'Unknown')
+        if imagew == 'Unknown':
+            imagew = header.get('NAXIS1', 'Unknown')
+
+        # Image Height
+        imageh = header.get('IMAGEH', 'Unknown')
+        if imageh == 'Unknown':
+            imageh = header.get('NAXIS2', 'Unknown')
+
+        # Focal Length
+        focal_length_value = header.get('FOCALLEN', 'Unknown')
+        try:
+            focal_length = float(focal_length_value)
+        except (ValueError, TypeError):
+            focal_length = 'Unknown'
+
+        # Format Date
         try:
             formatted_date_obs = datetime.strptime(date_obs, '%Y-%m-%dT%H:%M:%S.%f').strftime('%Y%m%d_%H%M%S')
-        except ValueError:
+        except (ValueError, TypeError):
             formatted_date_obs = date_obs
 
         return (
@@ -63,7 +111,11 @@ def create_info_file(fits_info, new_filepath, object_name):
     info_filepath = os.path.splitext(new_filepath)[0] + '.info'
     with open(info_filepath, 'w') as file:
         file.write(f"Object Name: {object_name}\n")
-        file.write(f"Date/Time of Observation: {datetime.strptime(fits_info[0], '%Y%m%d_%H%M%S').strftime('%d.%m.%Y %H:%M:%S')}\n")
+        try:
+            date_str = datetime.strptime(fits_info[0], '%Y%m%d_%H%M%S').strftime('%d.%m.%Y %H:%M:%S')
+        except (ValueError, TypeError):
+            date_str = fits_info[0]
+        file.write(f"Date/Time of Observation: {date_str}\n")
         file.write(f"Mount: {fits_info[1]}\n")
         file.write(f"Main Camera: {fits_info[2]}\n")
         file.write(f"Guide Camera: {fits_info[11]}\n")
@@ -78,7 +130,7 @@ def create_info_file(fits_info, new_filepath, object_name):
         file.write(f"Bayer Pattern: {fits_info[12]}\n")
         file.write(f"Gain: {fits_info[13]}\n")
     print(f"Info file created at: {info_filepath}")
-    
+
 def add_text_to_picture(image_path, fits_info, object_name):
     # Open the picture using Pillow
     image = Image.open(image_path)
@@ -95,8 +147,13 @@ def add_text_to_picture(image_path, fits_info, object_name):
     text_position = (image_copy.width - 300, image_copy.height - 200)
 
     # Write the extracted info values as text on the copied image
+    try:
+        date_str = datetime.strptime(fits_info[0], '%Y%m%d_%H%M%S').strftime('%d.%m.%Y %H:%M:%S')
+    except (ValueError, TypeError):
+        date_str = fits_info[0]
+
     text = f"Object: {object_name}\n"
-    text += f"Date/Time of Observation: {datetime.strptime(fits_info[0], '%Y%m%d_%H%M%S').strftime('%d.%m.%Y %H:%M:%S')}\n"
+    text += f"Date/Time of Observation: {date_str}\n"
     text += f"Mount: {fits_info[1]}\n"
     text += f"Main Camera: {fits_info[2]}\n"
     text += f"Guide Camera: {fits_info[11]}\n"
@@ -117,7 +174,7 @@ def add_text_to_picture(image_path, fits_info, object_name):
     image_copy.save(new_image_path)
 
     print(f"Info added to the picture. Picture saved at: {new_image_path}")
-    
+
 def main():
     parser = argparse.ArgumentParser(description="Extract information from a FITS file and rename a picture file.")
     parser.add_argument("--pathtofit", help="Path to the FITS file")
@@ -126,18 +183,29 @@ def main():
 
     fits_file = args.pathtofit
     picture_path = args.picturepath
-    
+
     object_name = os.path.splitext(os.path.basename(picture_path))[0]
 
     # Extract information from FITS file
     fits_info = extract_fits_info(fits_file)
 
+    # Convert fits_info to a list to allow modifications
+    fits_info = list(fits_info)
+
+    # Prompt the user for the guide camera if it's unknown
+    if fits_info[11] == 'Unknown':
+        guidecam_input = input("Guide Camera not found in FITS header. Please enter Guide Camera: ")
+        fits_info[11] = guidecam_input
+
+    fits_info = tuple(fits_info)  # Convert back to tuple if necessary
+
     # Rename the picture file
     new_filepath = rename_picture(fits_info, picture_path)
-    
-    create_info_file(fits_info,new_filepath, object_name)
-    
-      # Add text to the picture
+
+    # Create the info file
+    create_info_file(fits_info, new_filepath, object_name)
+
+    # Add text to the picture
     add_text_to_picture(new_filepath, fits_info, object_name)
 
 if __name__ == "__main__":

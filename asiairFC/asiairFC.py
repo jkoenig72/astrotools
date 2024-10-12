@@ -16,7 +16,7 @@ server_info = [
 #    {'ip': '192.168.10.80', 'local_folder': 'asiair1'},
 #    {'ip': '192.168.10.81', 'local_folder': 'asiair2'},
 #    {'ip': '192.168.10.82', 'local_folder': 'asiair3'},
-    {'ip': '192.168.10.83', 'local_folder': 'asiair4'},
+#    {'ip': '192.168.10.83', 'local_folder': 'asiair4'},
     {'ip': '192.168.10.84', 'local_folder': 'asiair5'},
 #    {'ip': '192.168.10.85', 'local_folder': 'asiair6'},
     # Add more servers and their local folders here
