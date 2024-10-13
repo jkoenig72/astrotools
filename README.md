@@ -4,6 +4,7 @@ renameAstroPhoto.py:
 This script processes astrophotography images by extracting metadata from associated FITS files and renaming the images accordingly. It also generates an .info file with detailed observation data and overlays text onto the images with key information. The script uses the following command-line parameters:
 
 --pathtofit: (Required) The path to the FITS file from which to extract metadata.
+
 --picturepath: (Required) The path to the image file to be renamed and annotated.
 
 watchdog.py:
