@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+
 import os
 import calendar
 import time
@@ -6,16 +7,20 @@ import subprocess
 import logging
 import requests  # Import requests for HTTP POST
 
+# Configure logging to display timestamp and message level
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
+# Command to restart a user-specific service
 cmd1 = ['runuser', '-l', 'fritz', '-c', 'systemctl --user restart indi-allsky']
+# Command to restart the indiserver service
 cmd2 = ['systemctl', 'restart', 'indiserver']
 
 ct = 180  # Allowed time difference in seconds for primary check (3 minutes)
 extended_ct = 600  # Extended time difference in seconds for secondary check (10 minutes)
-image = '/var/www/html/allsky/images/latest.jpg'
+image = '/var/www/html/allsky/images/latest.jpg'  # Path to the latest image file
 
-remote_pc_url = 'http://192.168.10.43:8624/api/system/reboot'  # URL to reboot remote PC
+# URL to send a reboot command to the remote PC
+remote_pc_url = 'http://192.168.10.43:8624/api/system/reboot'
 
 logging.info("Allowed difference in sec. for primary check: " + str(ct))
 logging.info("Allowed difference in sec. for extended check: " + str(extended_ct))
@@ -23,7 +28,7 @@ logging.info("Allowed difference in sec. for extended check: " + str(extended_ct
 def reboot_remote_pc():
     """Function to reboot the remote PC."""
     try:
-        response = requests.post(remote_pc_url)
+        response = requests.post(remote_pc_url)  # Send POST request to reboot PC
         if response.status_code == 200:
             logging.info("Successfully sent reboot command to remote PC.")
         else:
@@ -34,23 +39,23 @@ def reboot_remote_pc():
 def reboot_local_machine():
     """Function to reboot the local machine."""
     try:
-        subprocess.run(['sudo', 'reboot'], check=True)
+        subprocess.run(['sudo', 'reboot'], check=True)  # Run command to reboot local machine
     except subprocess.CalledProcessError as e:
         logging.error(f"Failed to reboot local machine: {e}")
 
 try:
     logging.info(f"Inial wait after start - 10 min") 
-    time.sleep(600)
+    time.sleep(600)  # Initial wait period of 10 minutes before starting checks
     while True:
         try:
-            f = os.path.getmtime(image)
+            f = os.path.getmtime(image)  # Get last modified time of the image
         except FileNotFoundError:
             logging.error(f"Image file not found: {image}")
-            time.sleep(30)
+            time.sleep(30)  # Wait and retry if image not found
             continue
         
-        c = calendar.timegm(time.gmtime())
-        d = int(c - f)
+        c = calendar.timegm(time.gmtime())  # Get current GMT time as seconds since epoch
+        d = int(c - f)  # Calculate age of the image in seconds
 
         if d > extended_ct:
             # Extended check: image is too old, reboot both machines
@@ -70,7 +75,6 @@ try:
         else:
             logging.info(f"Image is {d} sec. old - ok.")
         
-        time.sleep(30)
+        time.sleep(30)  # Repeat check every 30 seconds
 except KeyboardInterrupt:
-    logging.info("Watchdog terminated by user.")
-
+    logging.info("Watchdog terminated by user.")  # Log message when user manually stops the process
